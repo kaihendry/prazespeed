@@ -76,18 +76,20 @@ func main() {
 
 func get(w http.ResponseWriter, r *http.Request) {
 
-	u := InfoPayload{ControlLogin: "khw@a", ControlPassword: os.Getenv("PASSWORD"), Service: os.Getenv("NUMBER")}
+	u := InfoPayload{ControlLogin: os.GenEnv("LOGIN"), ControlPassword: os.Getenv("PASSWORD"), Service: os.Getenv("NUMBER")}
 	b := new(bytes.Buffer)
 	json.NewEncoder(b).Encode(u)
 	resp, err := http.Post("https://chaos2.aa.net.uk/broadband/info", "application/json; charset=utf-8", b)
 	if err != nil {
-		log.WithError(err).Fatal("Not able to post")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.WithError(err).Fatal("Not able to read body")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	var infor InfoResponse
@@ -95,7 +97,6 @@ func get(w http.ResponseWriter, r *http.Request) {
 
 	log.WithFields(log.Fields{
 		"response":  string(body),
-		"infor":     infor,
 		"line info": infor.Info[0],
 		"rxrate":    infor.Info[0].RxRate,
 	}).Info("res")
