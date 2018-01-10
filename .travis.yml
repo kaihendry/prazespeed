@@ -5,5 +5,8 @@ go:
 before_install:
 - curl -sfL https://raw.githubusercontent.com/apex/up/master/install.sh | sudo sh
 - up upgrade
-after_success:
-- test "$TRAVIS_BRANCH" = master && up
+deploy:
+  provider: script
+  script: up
+  on:
+    branch: master
