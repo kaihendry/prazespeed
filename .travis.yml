@@ -4,7 +4,7 @@ go:
 - tip
 before_install:
 - curl -sfL https://raw.githubusercontent.com/apex/up/master/install.sh | sudo sh
-- up upgrade
+- sudo up upgrade
 deploy:
   provider: script
   script: up
