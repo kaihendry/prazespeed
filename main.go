@@ -76,7 +76,7 @@ func main() {
 
 func get(w http.ResponseWriter, r *http.Request) {
 
-	u := InfoPayload{ControlLogin: os.GenEnv("LOGIN"), ControlPassword: os.Getenv("PASSWORD"), Service: os.Getenv("NUMBER")}
+	u := InfoPayload{ControlLogin: os.Getenv("LOGIN"), ControlPassword: os.Getenv("PASSWORD"), Service: os.Getenv("NUMBER")}
 	b := new(bytes.Buffer)
 	json.NewEncoder(b).Encode(u)
 	resp, err := http.Post("https://chaos2.aa.net.uk/broadband/info", "application/json; charset=utf-8", b)
