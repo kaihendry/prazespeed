@@ -3,7 +3,7 @@ language: go
 go:
 - tip
 before_install:
-- curl -sf https://up.apex.sh/install | sh
+- curl -sf https://up.apex.sh/install | sudo sh
 - sudo up upgrade
 deploy:
   provider: script
