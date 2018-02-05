@@ -112,6 +112,8 @@ func get(w http.ResponseWriter, r *http.Request) {
 <h1>Upload {{ .RxRate | formatRate }}</h1>
 <h1>Quota Remaining {{ .QuotaRemaining | formatQuota }} / Monthly {{ .QuotaMonthly | formatQuota }}</h1>
 
+<p>silly edit</p>
+
 <a href="http://github.com/kaihendry/prazespeed">Source code</a>
 
 </body>
