@@ -7,6 +7,6 @@ before_install:
 - sudo up upgrade
 deploy:
   provider: script
-  script: up -v -C up
+  script: cd up && up -v
   on:
     branch: master
