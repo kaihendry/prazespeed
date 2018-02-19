@@ -7,6 +7,6 @@ before_install:
 - sudo up upgrade
 deploy:
   provider: script
-  script: cd up && up -v
+  script: cd up && echo $(date) && up -v
   on:
     branch: master
