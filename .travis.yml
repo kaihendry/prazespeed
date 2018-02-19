@@ -8,6 +8,6 @@ before_install:
 deploy:
     - provider: script
       skip_cleanup: true
-      script: cd up && echo $(date) && up -v
+      script: up -C $TRAVIS_BUILD_DIR/up -v deploy
       on:
         branch: master
