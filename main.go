@@ -107,9 +107,10 @@ func get(w http.ResponseWriter, r *http.Request) {
 <html>
 <head>
 <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,minimum-scale=1">
+</head>
 <body>
-<h1>Download {{ .TxRate | formatRate }}</h1>
-<h1>Upload {{ .RxRate | formatRate }}</h1>
+<h1>Download {{ .TxRate | formatRate }} Upload {{ .RxRate | formatRate }}</h1>
 <h1>Quota Remaining {{ .QuotaRemaining | formatQuota }} / Monthly {{ .QuotaMonthly | formatQuota }}</h1>
 
 <a href="http://github.com/kaihendry/prazespeed">Source code</a>

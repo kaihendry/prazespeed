@@ -3,7 +3,7 @@
 	"profile": "mine",
 	"regions": ["ap-southeast-1"],
 	"stages": {
-		"development": {
+		"staging": {
 			"domain": "speed.prazefarm.co.uk"
 		}
 	},
