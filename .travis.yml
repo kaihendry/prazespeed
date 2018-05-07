@@ -8,6 +8,6 @@ before_install:
 deploy:
     - provider: script
       skip_cleanup: true
-      script: up -C $TRAVIS_BUILD_DIR/foobar -v deploy
+      script: up deploy
       on:
         branch: master

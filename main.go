@@ -106,6 +106,7 @@ func get(w http.ResponseWriter, r *http.Request) {
 	template.Must(t.Funcs(template.FuncMap{"formatRate": formatRate, "formatQuota": formatQuota}).Parse(`<!DOCTYPE html>
 <html>
 <head>
+<title>Prazefarm speed</title>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,minimum-scale=1">
 </head>
