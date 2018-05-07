@@ -8,6 +8,6 @@ before_install:
 deploy:
     - provider: script
       skip_cleanup: true
-      script: up deploy
+      script: up -v
       on:
         branch: master
