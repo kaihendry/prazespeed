@@ -1,5 +1,6 @@
 {
 	"name": "prazespeed",
+	"profile": "mine",
 	"regions": ["ap-southeast-1"],
 	"stages": {
 		"staging": {
