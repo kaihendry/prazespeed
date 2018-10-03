@@ -17,12 +17,11 @@ html, body{
     -webkit-text-size-adjust: none;
 }
 h1, h2 {  text-align: center; }
-.highlight { text-decoration: underline; }
 </style>
 </head>
 <body>
 <h1>Download {{ .TxRate | formatRate }}</h1>
-<h1 class=highlight>Upload {{ .RxRate | formatRate }}</h1>
+<h1>Upload {{ .RxRate | formatRate }}</h1>
 <h2>
 Quota Remaining {{ .QuotaRemaining | formatQuota }} / Monthly {{ .QuotaMonthly | formatQuota }}
 </h2>

@@ -13,7 +13,10 @@ import (
 	"github.com/apex/log"
 	jsonlog "github.com/apex/log/handlers/json"
 	"github.com/apex/log/handlers/text"
-	"github.com/gorilla/pat"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/endpoints"
+	"github.com/aws/aws-sdk-go-v2/aws/external"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
 	"github.com/pkg/errors"
 )
 
@@ -67,11 +70,10 @@ func init() {
 }
 
 func main() {
-	addr := ":" + os.Getenv("PORT")
-	app := pat.New()
-	app.Get("/", get)
-	if err := http.ListenAndServe(addr, app); err != nil {
-		log.WithError(err).Fatal("error listening")
+	http.HandleFunc("/favicon.ico", http.NotFound)
+	http.HandleFunc("/", get)
+	if err := http.ListenAndServe(":"+os.Getenv("PORT"), nil); err != nil {
+		log.Fatalf("error listening: %s", err)
 	}
 }
 
@@ -105,14 +107,25 @@ func get(w http.ResponseWriter, r *http.Request) {
 	info, err := aainfo()
 
 	if err != nil {
-		log.WithError(err).Error("Unable to retrieve aainfo")
+		log.WithError(err).Error("unable to retrieve aainfo")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	cw, err := NewSender()
+	if err != nil {
+		log.WithError(err).Error("failed to setup CW sender")
+	}
+
+	err = cw.log(info)
+	if err != nil {
+		log.WithError(err).Error("failed to log CW sender")
+	}
+
 	log.WithFields(log.Fields{
-		"upload":   info.RxRate,
-		"download": info.TxRate,
+		"upload(rx)":     info.RxRate,
+		"download(tx)":   info.TxRate,
+		"TxRateAdjusted": info.TxRateAdjusted,
 	}).Info("info")
 
 	t := template.Must(template.New("").Funcs(template.FuncMap{"formatRate": formatRate, "formatQuota": formatQuota}).ParseFiles("index.html"))
@@ -124,6 +137,51 @@ func get(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+type Sender struct {
+	cloudwatchSvc *cloudwatch.CloudWatch
+}
+
+func NewSender() (*Sender, error) {
+	cfg, err := external.LoadDefaultAWSConfig(external.WithSharedConfigProfile("mine"))
+	if err != nil {
+		return nil, fmt.Errorf("could not create AWS session: %s", err)
+	}
+	cfg.Region = endpoints.ApSoutheast1RegionID
+	return &Sender{cloudwatch.New(cfg)}, nil
+}
+
+func (sender *Sender) log(i info) error {
+	upload, err := strconv.ParseFloat(i.RxRate, 64)
+	if err != nil {
+		return err
+	}
+
+	download, err := strconv.ParseFloat(i.TxRate, 64)
+	if err != nil {
+		return err
+	}
+
+	req := sender.cloudwatchSvc.PutMetricDataRequest(&cloudwatch.PutMetricDataInput{
+		MetricData: []cloudwatch.MetricDatum{
+			cloudwatch.MetricDatum{
+				MetricName: aws.String("upload"),
+				Unit:       cloudwatch.StandardUnitBitsSecond,
+				Value:      aws.Float64(upload),
+				Dimensions: []cloudwatch.Dimension{},
+			},
+			cloudwatch.MetricDatum{
+				MetricName: aws.String("download"),
+				Unit:       cloudwatch.StandardUnitBitsSecond,
+				Value:      aws.Float64(download),
+				Dimensions: []cloudwatch.Dimension{},
+			},
+		},
+		Namespace: aws.String("prazespeed"),
+	})
+	_, err = req.Send()
+	return err
 }
 
 func formatRate(num string) string {
