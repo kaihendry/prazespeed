@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -26,7 +27,7 @@ type infoPayload struct {
 	Service         string `json:"service"`
 }
 
-type info struct {
+type Info struct {
 	ID             string `json:"ID"`
 	Login          string `json:"login"`
 	Postcode       string `json:"postcode"`
@@ -57,7 +58,7 @@ type infoResponse struct {
 			Value   string `json:"value"`
 		} `json:"option,omitempty"`
 	} `json:"options"`
-	Infos []info `json:"info"`
+	Infos []Info `json:"info"`
 	Error string `json:"error"`
 }
 
@@ -77,7 +78,7 @@ func main() {
 	}
 }
 
-func aainfo() (info info, err error) {
+func aainfo() (info Info, err error) {
 	u := infoPayload{ControlLogin: os.Getenv("LOGIN"), ControlPassword: os.Getenv("PASSWORD"), Service: os.Getenv("NUMBER")}
 	b := new(bytes.Buffer)
 	json.NewEncoder(b).Encode(u)
@@ -122,6 +123,13 @@ func get(w http.ResponseWriter, r *http.Request) {
 		log.WithError(err).Error("failed to log CW sender")
 	}
 
+	image, err := cw.image()
+	if err != nil {
+		log.WithError(err).Error("failed to retrieve CW image")
+	} else {
+		log.Info(image)
+	}
+
 	log.WithFields(log.Fields{
 		"upload(rx)":     info.RxRate,
 		"download(tx)":   info.TxRate,
@@ -130,7 +138,10 @@ func get(w http.ResponseWriter, r *http.Request) {
 
 	t := template.Must(template.New("").Funcs(template.FuncMap{"formatRate": formatRate, "formatQuota": formatQuota}).ParseFiles("index.html"))
 
-	err = t.ExecuteTemplate(w, "index.html", info)
+	err = t.ExecuteTemplate(w, "index.html", struct {
+		Info  Info
+		Image string
+	}{info, image})
 
 	if err != nil {
 		log.WithError(err).Error("Unable to print template")
@@ -152,7 +163,7 @@ func NewSender() (*Sender, error) {
 	return &Sender{cloudwatch.New(cfg)}, nil
 }
 
-func (sender *Sender) log(i info) error {
+func (sender *Sender) log(i Info) error {
 	upload, err := strconv.ParseFloat(i.RxRate, 64)
 	if err != nil {
 		return err
@@ -182,6 +193,16 @@ func (sender *Sender) log(i info) error {
 	})
 	_, err = req.Send()
 	return err
+}
+
+func (sender *Sender) image() (string, error) {
+	req := sender.cloudwatchSvc.GetMetricWidgetImageRequest(&cloudwatch.GetMetricWidgetImageInput{
+		// https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/CloudWatch-Metric-Widget-Structure.html
+		MetricWidget: aws.String(`{ "metrics": [[ "prazespeed", "download" ], [ "prazespeed", "upload" ]] }`),
+	})
+	image, err := req.Send()
+	return base64.StdEncoding.EncodeToString(image.MetricWidgetImage), err
+
 }
 
 func formatRate(num string) string {
