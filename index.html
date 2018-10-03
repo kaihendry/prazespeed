@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="https://www.prazefarm.co.uk/style.css" type="text/css"/>
 <style>
 html, body{
-    margin: 0;
+    margin: 1em;
     padding: 0;
     font-weight: 300;
     overflow: hidden;
@@ -17,9 +17,11 @@ html, body{
     -webkit-text-size-adjust: none;
 }
 h1, h2, p {  text-align: center; }
+main { border-top: 1px solid #632; }
 </style>
 </head>
 <body>
+<main>
 <h1>Download {{ .Info.TxRate | formatRate }}</h1>
 <h1>Upload {{ .Info.RxRate | formatRate }}</h1>
 <p>
@@ -33,5 +35,6 @@ Quota Remaining {{ .Info.QuotaRemaining | formatQuota }} / Monthly {{ .Info.Quot
 <li><a href="http://github.com/kaihendry/prazespeed">Source code of this Web application</a></li>
 <li><a href="https://www.prazefarm.co.uk">Visit Praze Farm in Cornwall, UK</a></li>
 </ul>
+</main>
 </body>
 </html>
