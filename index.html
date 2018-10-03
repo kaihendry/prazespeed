@@ -4,12 +4,11 @@
 <title>Praze Farm Internet speed</title>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,minimum-scale=1">
+<link rel="stylesheet" href="https://www.prazefarm.co.uk/style.css" type="text/css"/>
 <style>
 html, body{
     margin: 0;
     padding: 0;
-    font-family: HelveticaNeue-Thin, 'helvetica neue thin', 'helvetica neue', helvetica, arial, sans-serif;
-    text-align: center;
     font-weight: 300;
     overflow: hidden;
     height: 100%;
@@ -17,11 +16,20 @@ html, body{
     transition: all .3s;
     -webkit-text-size-adjust: none;
 }
+h1, h2 {  text-align: center; }
+.highlight { text-decoration: underline; }
 </style>
 </head>
 <body>
-<h1>Download {{ .TxRate | formatRate }} Upload {{ .RxRate | formatRate }}</h1>
-<h1>Quota Remaining {{ .QuotaRemaining | formatQuota }} / Monthly {{ .QuotaMonthly | formatQuota }}</h1>
-<a href="http://github.com/kaihendry/prazespeed">Source code</a>
+<h1>Download {{ .TxRate | formatRate }}</h1>
+<h1 class=highlight>Upload {{ .RxRate | formatRate }}</h1>
+<h2>
+Quota Remaining {{ .QuotaRemaining | formatQuota }} / Monthly {{ .QuotaMonthly | formatQuota }}
+</h2>
+<ul>
+<li><a href="https://www.youtube.com/watch?v=PLfF0FEkYFw">Video explaining the issue with our deteriorating Superfast Cornwall copper line</a></li>
+<li><a href="http://github.com/kaihendry/prazespeed">Source code of this Web application</a></li>
+<li><a href="https://www.prazefarm.co.uk">Visit Praze Farm in Cornwall, UK</a></li>
+</ul>
 </body>
 </html>

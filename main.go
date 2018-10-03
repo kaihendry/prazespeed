@@ -14,12 +14,25 @@ import (
 	jsonlog "github.com/apex/log/handlers/json"
 	"github.com/apex/log/handlers/text"
 	"github.com/gorilla/pat"
+	"github.com/pkg/errors"
 )
 
 type infoPayload struct {
 	ControlLogin    string `json:"control_login"`
 	ControlPassword string `json:"control_password"`
 	Service         string `json:"service"`
+}
+
+type info struct {
+	ID             string `json:"ID"`
+	Login          string `json:"login"`
+	Postcode       string `json:"postcode"`
+	TxRate         string `json:"tx_rate"`
+	RxRate         string `json:"rx_rate"`
+	TxRateAdjusted string `json:"tx_rate_adjusted"`
+	QuotaMonthly   string `json:"quota_monthly"`
+	QuotaRemaining string `json:"quota_remaining"`
+	QuotaTimestamp string `json:"quota_timestamp"`
 }
 
 type infoResponse struct {
@@ -41,21 +54,10 @@ type infoResponse struct {
 			Value   string `json:"value"`
 		} `json:"option,omitempty"`
 	} `json:"options"`
-	Info []struct {
-		ID             string `json:"ID"`
-		Login          string `json:"login"`
-		Postcode       string `json:"postcode"`
-		TxRate         string `json:"tx_rate"`
-		RxRate         string `json:"rx_rate"`
-		TxRateAdjusted string `json:"tx_rate_adjusted"`
-		QuotaMonthly   string `json:"quota_monthly"`
-		QuotaRemaining string `json:"quota_remaining"`
-		QuotaTimestamp string `json:"quota_timestamp"`
-	} `json:"info"`
+	Infos []info `json:"info"`
 	Error string `json:"error"`
 }
 
-// use JSON logging when run by Up (including `up start`).
 func init() {
 	if os.Getenv("UP_STAGE") == "" {
 		log.SetHandler(text.Default)
@@ -64,7 +66,6 @@ func init() {
 	}
 }
 
-// setup.
 func main() {
 	addr := ":" + os.Getenv("PORT")
 	app := pat.New()
@@ -74,44 +75,49 @@ func main() {
 	}
 }
 
-func get(w http.ResponseWriter, r *http.Request) {
-
+func aainfo() (info info, err error) {
 	u := infoPayload{ControlLogin: os.Getenv("LOGIN"), ControlPassword: os.Getenv("PASSWORD"), Service: os.Getenv("NUMBER")}
 	b := new(bytes.Buffer)
 	json.NewEncoder(b).Encode(u)
 	resp, err := http.Post("https://chaos2.aa.net.uk/broadband/info", "application/json; charset=utf-8", b)
 	if err != nil {
-		log.WithError(err).Error("failed to make POST request")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return info, errors.Wrap(err, "failed to make POST request")
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.WithError(err).Error("failed to read A&A's response body")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return info, errors.Wrap(err, "failed to read A&A's response body")
 	}
 
 	if resp.StatusCode != 200 {
-		log.WithError(err).Error(string(body))
-		http.Error(w, "failed to retrieve Internet speed", http.StatusInternalServerError)
-		return
+		return info, errors.Wrap(err, "failed to retrieve Internet speed")
 	}
 
 	var infor infoResponse
 	err = json.Unmarshal(body, &infor)
+	return infor.Infos[0], err
+
+}
+
+func get(w http.ResponseWriter, r *http.Request) {
+
+	info, err := aainfo()
+
+	if err != nil {
+		log.WithError(err).Error("Unable to retrieve aainfo")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	log.WithFields(log.Fields{
-		"line info": infor.Info[0],
-		"upload":    infor.Info[0].RxRate,
-		"download":  infor.Info[0].TxRate,
-	}).Info("res")
+		"upload":   info.RxRate,
+		"download": info.TxRate,
+	}).Info("info")
 
 	t := template.Must(template.New("").Funcs(template.FuncMap{"formatRate": formatRate, "formatQuota": formatQuota}).ParseFiles("index.html"))
 
-	err = t.ExecuteTemplate(w, "index.html", infor.Info[0])
+	err = t.ExecuteTemplate(w, "index.html", info)
 
 	if err != nil {
 		log.WithError(err).Error("Unable to print template")
