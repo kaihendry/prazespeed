@@ -123,7 +123,7 @@ func get(w http.ResponseWriter, r *http.Request) {
 		log.WithError(err).Error("failed to log CW sender")
 	}
 
-	image, err := cw.image()
+	image, err := cw.base64image()
 	if err != nil {
 		log.WithError(err).Fatal("failed to retrieve CW image")
 	}
@@ -193,9 +193,10 @@ func (sender *Sender) log(i Info) error {
 	return err
 }
 
-func (sender *Sender) image() (string, error) {
+func (sender *Sender) base64image() (string, error) {
 	req := sender.cloudwatchSvc.GetMetricWidgetImageRequest(&cloudwatch.GetMetricWidgetImageInput{
 		// https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/CloudWatch-Metric-Widget-Structure.html
+		// Tip: Look at source of Cloudwatch Metric graph in the console
 		MetricWidget: aws.String(`{ "metrics": [[ "prazespeed", "download" ], [ "prazespeed", "upload" ]],
 	  "yAxis": { "left": { "min": 0 }}, "title": "Superfast Cornwall speeds 21CN FTTC"}`),
 	})
