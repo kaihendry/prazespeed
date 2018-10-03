@@ -16,13 +16,13 @@ import (
 	"github.com/gorilla/pat"
 )
 
-type InfoPayload struct {
+type infoPayload struct {
 	ControlLogin    string `json:"control_login"`
 	ControlPassword string `json:"control_password"`
 	Service         string `json:"service"`
 }
 
-type InfoResponse struct {
+type infoResponse struct {
 	Subsystem string `json:"subsystem"`
 	Command   string `json:"command"`
 	Request   struct {
@@ -76,11 +76,12 @@ func main() {
 
 func get(w http.ResponseWriter, r *http.Request) {
 
-	u := InfoPayload{ControlLogin: os.Getenv("LOGIN"), ControlPassword: os.Getenv("PASSWORD"), Service: os.Getenv("NUMBER")}
+	u := infoPayload{ControlLogin: os.Getenv("LOGIN"), ControlPassword: os.Getenv("PASSWORD"), Service: os.Getenv("NUMBER")}
 	b := new(bytes.Buffer)
 	json.NewEncoder(b).Encode(u)
 	resp, err := http.Post("https://chaos2.aa.net.uk/broadband/info", "application/json; charset=utf-8", b)
 	if err != nil {
+		log.WithError(err).Error("failed to make POST request")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -88,43 +89,35 @@ func get(w http.ResponseWriter, r *http.Request) {
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		log.WithError(err).Error("failed to read A&A's response body")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	var infor InfoResponse
+	if resp.StatusCode != 200 {
+		log.WithError(err).Error(string(body))
+		http.Error(w, "failed to retrieve Internet speed", http.StatusInternalServerError)
+		return
+	}
+
+	var infor infoResponse
 	err = json.Unmarshal(body, &infor)
 
 	log.WithFields(log.Fields{
-		"response":  string(body),
 		"line info": infor.Info[0],
-		"rxrate":    infor.Info[0].RxRate,
+		"upload":    infor.Info[0].RxRate,
+		"download":  infor.Info[0].TxRate,
 	}).Info("res")
 
-	t := template.New("medialist")
+	t := template.Must(template.New("").Funcs(template.FuncMap{"formatRate": formatRate, "formatQuota": formatQuota}).ParseFiles("index.html"))
 
-	template.Must(t.Funcs(template.FuncMap{"formatRate": formatRate, "formatQuota": formatQuota}).Parse(`<!DOCTYPE html>
-<html>
-<head>
-<title>Prazefarm speed</title>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,minimum-scale=1">
-</head>
-<body>
-<h1>Download {{ .TxRate | formatRate }} Upload {{ .RxRate | formatRate }}</h1>
-<h1>Quota Remaining {{ .QuotaRemaining | formatQuota }} / Monthly {{ .QuotaMonthly | formatQuota }}</h1>
-
-<a href="http://github.com/kaihendry/prazespeed">Source code</a>
-
-</body>
-</html>`))
-
-	err = t.Execute(w, infor.Info[0])
+	err = t.ExecuteTemplate(w, "index.html", infor.Info[0])
 
 	if err != nil {
-		log.WithError(err).Fatal("Unable to print template")
+		log.WithError(err).Error("Unable to print template")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-
 }
 
 func formatRate(num string) string {

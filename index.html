@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Praze Farm Internet speed</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,minimum-scale=1">
+<style>
+html, body{
+    margin: 0;
+    padding: 0;
+    font-family: HelveticaNeue-Thin, 'helvetica neue thin', 'helvetica neue', helvetica, arial, sans-serif;
+    text-align: center;
+    font-weight: 300;
+    overflow: hidden;
+    height: 100%;
+    -webkit-transition: all .3s;
+    transition: all .3s;
+    -webkit-text-size-adjust: none;
+}
+</style>
+</head>
+<body>
+<h1>Download {{ .TxRate | formatRate }} Upload {{ .RxRate | formatRate }}</h1>
+<h1>Quota Remaining {{ .QuotaRemaining | formatQuota }} / Monthly {{ .QuotaMonthly | formatQuota }}</h1>
+<a href="http://github.com/kaihendry/prazespeed">Source code</a>
+</body>
+</html>
