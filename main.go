@@ -125,9 +125,7 @@ func get(w http.ResponseWriter, r *http.Request) {
 
 	image, err := cw.image()
 	if err != nil {
-		log.WithError(err).Error("failed to retrieve CW image")
-	} else {
-		log.Info(image)
+		log.WithError(err).Fatal("failed to retrieve CW image")
 	}
 
 	log.WithFields(log.Fields{
@@ -198,7 +196,8 @@ func (sender *Sender) log(i Info) error {
 func (sender *Sender) image() (string, error) {
 	req := sender.cloudwatchSvc.GetMetricWidgetImageRequest(&cloudwatch.GetMetricWidgetImageInput{
 		// https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/CloudWatch-Metric-Widget-Structure.html
-		MetricWidget: aws.String(`{ "metrics": [[ "prazespeed", "download" ], [ "prazespeed", "upload" ]] }`),
+		MetricWidget: aws.String(`{ "metrics": [[ "prazespeed", "download" ], [ "prazespeed", "upload" ]],
+	  "yAxis": { "left": { "min": 0 }}, "title": "Superfast Cornwall speeds 21CN FTTC"}`),
 	})
 	image, err := req.Send()
 	return base64.StdEncoding.EncodeToString(image.MetricWidgetImage), err
