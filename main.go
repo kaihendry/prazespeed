@@ -198,7 +198,9 @@ func (sender *Sender) base64image() (string, error) {
 		// https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/CloudWatch-Metric-Widget-Structure.html
 		// Tip: Look at source of Cloudwatch Metric graph in the console
 		MetricWidget: aws.String(`{ "metrics": [[ "prazespeed", "download" ], [ "prazespeed", "upload" ]],
-	  "yAxis": { "left": { "min": 0 }}, "title": "Superfast Cornwall speeds 21CN FTTC"}`),
+	  "yAxis": { "left": { "min": 0 }},
+	  "start": "-PT72H",
+	  "title": "Superfast Cornwall speeds 21CN FTTC over 72hrs"}`),
 	})
 	image, err := req.Send()
 	return base64.StdEncoding.EncodeToString(image.MetricWidgetImage), err
