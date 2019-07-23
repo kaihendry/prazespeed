@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -20,6 +21,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
 	"github.com/pkg/errors"
 )
+
+type Sender struct {
+	cloudwatchSvc *cloudwatch.Client
+}
 
 type infoPayload struct {
 	ControlLogin    string `json:"control_login"`
@@ -62,15 +67,13 @@ type infoResponse struct {
 	Error string `json:"error"`
 }
 
-func init() {
+func main() {
 	if os.Getenv("UP_STAGE") == "" {
 		log.SetHandler(text.Default)
 	} else {
 		log.SetHandler(jsonlog.Default)
 	}
-}
 
-func main() {
 	http.HandleFunc("/favicon.ico", http.NotFound)
 	http.HandleFunc("/", get)
 	if err := http.ListenAndServe(":"+os.Getenv("PORT"), nil); err != nil {
@@ -126,6 +129,8 @@ func get(w http.ResponseWriter, r *http.Request) {
 	image, err := cw.base64image()
 	if err != nil {
 		log.WithError(err).Fatal("failed to retrieve CW image")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	log.WithFields(log.Fields{
@@ -148,17 +153,13 @@ func get(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type Sender struct {
-	cloudwatchSvc *cloudwatch.CloudWatch
-}
-
 func NewSender() (*Sender, error) {
 	cfg, err := external.LoadDefaultAWSConfig(external.WithSharedConfigProfile("mine"))
 	if err != nil {
 		return nil, fmt.Errorf("could not create AWS session: %s", err)
 	}
 	cfg.Region = endpoints.ApSoutheast1RegionID
-	return &Sender{cloudwatch.New(cfg)}, nil
+	return &Sender{cloudwatchSvc: cloudwatch.New(cfg)}, nil
 }
 
 func (sender *Sender) log(i Info) error {
@@ -189,20 +190,35 @@ func (sender *Sender) log(i Info) error {
 		},
 		Namespace: aws.String("prazespeed"),
 	})
-	_, err = req.Send()
+	_, err = req.Send(context.TODO())
 	return err
 }
 
 func (sender *Sender) base64image() (string, error) {
-	req := sender.cloudwatchSvc.GetMetricWidgetImageRequest(&cloudwatch.GetMetricWidgetImageInput{
-		// https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/CloudWatch-Metric-Widget-Structure.html
-		// Tip: Look at source of Cloudwatch Metric graph in the console
-		MetricWidget: aws.String(`{ "metrics": [[ "prazespeed", "download" ], [ "prazespeed", "upload" ]],
+	// https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/CloudWatch-Metric-Widget-Structure.html
+	// Tip: Look at source of Cloudwatch Metric graph in the console
+
+	threemonths := cloudwatch.GetMetricWidgetImageInput{
+		MetricWidget: aws.String(`{ "metrics":
+		[
+		[ "prazespeed", "download" ],
+		[ "prazespeed", "upload" ]
+		],
 	  "yAxis": { "left": { "min": 0 }},
 	  "start": "-P3M",
 	  "title": "Superfast Cornwall speeds 21CN FTTC over 3 months"}`),
-	})
-	image, err := req.Send()
+	}
+	err := threemonths.Validate()
+	if err != nil {
+		return "", errors.Wrap(err, "failed validating metric request")
+	}
+
+	req := sender.cloudwatchSvc.GetMetricWidgetImageRequest(&threemonths)
+
+	image, err := req.Send(context.TODO())
+	if err != nil {
+		return "", err
+	}
 	return base64.StdEncoding.EncodeToString(image.MetricWidgetImage), err
 
 }
