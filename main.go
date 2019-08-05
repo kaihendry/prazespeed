@@ -197,25 +197,16 @@ func (sender *Sender) log(i Info) error {
 func (sender *Sender) base64image() (string, error) {
 	// https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/CloudWatch-Metric-Widget-Structure.html
 	// Tip: Look at source of Cloudwatch Metric graph in the console
-	// https://s.natalian.org/2019-07-23/1563874030_2560x1440.png
-	threemonths := cloudwatch.GetMetricWidgetImageInput{
-		MetricWidget: aws.String(`
 
-{
-    "metrics": [
-        [ "prazespeed", "upload", { "id": "m2" } ],
-        [ { "expression": "ANOMALY_DETECTION_BAND(m2, 2)", "label": "upload (expected)", "id": "ad2", "color": "#666666" } ],
-        [ "prazespeed", "download", { "id": "m1" } ],
-        [ { "expression": "ANOMALY_DETECTION_BAND(m1, 2)", "label": "download (expected)", "id": "ad1", "color": "#666666" } ]
-    ],
-    "region": "ap-southeast-1",
-    "width": 1280,
-    "height": 720,
-    "yAxis": { "left": { "min": 0 }},
-    "start": "-P2M",
-    "title": "Superfast Cornwall speeds 21CN FTTC over 2 months"
-}
-`),
+	threemonths := cloudwatch.GetMetricWidgetImageInput{
+		MetricWidget: aws.String(`{ "metrics":
+		[
+		[ "prazespeed", "download" ],
+		[ "prazespeed", "upload" ]
+		],
+	  "yAxis": { "left": { "min": 0 }},
+	  "start": "-P3M",
+	  "title": "Superfast Cornwall speeds 21CN FTTC over 3 months"}`),
 	}
 	err := threemonths.Validate()
 	if err != nil {
