@@ -130,7 +130,14 @@ func get(w http.ResponseWriter, r *http.Request) {
 		log.WithError(err).Error("failed to log CW sender")
 	}
 
-	image, err := cw.base64image()
+	upload, err := cw.base64image("upload")
+	if err != nil {
+		log.WithError(err).Fatal("failed to retrieve CW image")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	download, err := cw.base64image("download")
 	if err != nil {
 		log.WithError(err).Fatal("failed to retrieve CW image")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -146,9 +153,10 @@ func get(w http.ResponseWriter, r *http.Request) {
 	t := template.Must(template.New("").Funcs(template.FuncMap{"formatRate": formatRate, "formatQuota": formatQuota}).ParseFiles("index.html"))
 
 	err = t.ExecuteTemplate(w, "index.html", struct {
-		Info  Info
-		Image string
-	}{info, image})
+		Info          Info
+		UploadImage   string
+		DownloadImage string
+	}{info, upload, download})
 
 	if err != nil {
 		log.WithError(err).Error("Unable to print template")
@@ -169,12 +177,12 @@ func NewSender() (*Sender, error) {
 func (sender *Sender) log(i Info) error {
 	upload, err := strconv.ParseFloat(i.RxRate, 64)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to parse float, missing value?")
 	}
 
 	download, err := strconv.ParseFloat(i.TxRate, 64)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to parse float, missing value?")
 	}
 
 	req := sender.cloudwatchSvc.PutMetricDataRequest(&cloudwatch.PutMetricDataInput{
@@ -198,19 +206,20 @@ func (sender *Sender) log(i Info) error {
 	return err
 }
 
-func (sender *Sender) base64image() (string, error) {
+func (sender *Sender) base64image(metric string) (string, error) {
 	// https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/CloudWatch-Metric-Widget-Structure.html
 	// Tip: Look at source of Cloudwatch Metric graph in the console
 
+	log.WithField("metric", metric).Info("Creating plot")
+
 	plot := cloudwatch.GetMetricWidgetImageInput{
-		MetricWidget: aws.String(`{ "metrics":
+		MetricWidget: aws.String(fmt.Sprintf(`{ "metrics":
 		[
-		[ "prazespeed", "download", { "period": 3600 } ],
-		[ "prazespeed", "upload", { "period": 3600 } ]
+		[ "prazespeed", "%s", { "period": 3600, "stat": "Minimum" } ]
 		],
 	  "yAxis": { "left": { "min": 0 }},
 	  "start": "-P10M",
-	  "title": "Superfast Cornwall speeds 21CN FTTC over 10 months"}`),
+	  "title": "Superfast Cornwall %s speeds 21CN FTTC over 10 months"}`, metric, metric)),
 	}
 	err := plot.Validate()
 	if err != nil {

@@ -19,10 +19,13 @@ h1, h2, p {  text-align: center; }
 </style>
 </head>
 <body>
-<h1>Download {{ .Info.TxRate | formatRate }}</h1>
 <h1>Upload {{ .Info.RxRate | formatRate }}</h1>
 <p>
-<img alt="Superfast Cornwall speeds" src="data:image/png;base64,{{ .Image }}">
+<img alt="Superfast Cornwall speeds" src="data:image/png;base64,{{ .UploadImage }}">
+</p>
+<h1>Download {{ .Info.TxRate | formatRate }}</h1>
+<p>
+<img alt="Superfast Cornwall speeds" src="data:image/png;base64,{{ .DownloadImage }}">
 </p>
 <h2>
 Quota Remaining {{ .Info.QuotaRemaining | formatQuota }} / Monthly {{ .Info.QuotaMonthly | formatQuota }}
