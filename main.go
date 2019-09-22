@@ -97,11 +97,15 @@ func aainfo() (info Info, err error) {
 	}
 
 	if resp.StatusCode != 200 {
+		// 200 is returned even on failed auth btw
 		return info, errors.Wrap(err, "failed to retrieve Internet speed")
 	}
 
 	var infor infoResponse
 	err = json.Unmarshal(body, &infor)
+	if len(infor.Infos) == 0 {
+		return info, errors.Wrap(err, "failed to get response")
+	}
 	return infor.Infos[0], err
 
 }
@@ -198,22 +202,22 @@ func (sender *Sender) base64image() (string, error) {
 	// https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/CloudWatch-Metric-Widget-Structure.html
 	// Tip: Look at source of Cloudwatch Metric graph in the console
 
-	threemonths := cloudwatch.GetMetricWidgetImageInput{
+	plot := cloudwatch.GetMetricWidgetImageInput{
 		MetricWidget: aws.String(`{ "metrics":
 		[
-		[ "prazespeed", "download" ],
-		[ "prazespeed", "upload" ]
+		[ "prazespeed", "download", { "period": 3600 } ],
+		[ "prazespeed", "upload", { "period": 3600 } ]
 		],
 	  "yAxis": { "left": { "min": 0 }},
-	  "start": "-P3M",
-	  "title": "Superfast Cornwall speeds 21CN FTTC over 3 months"}`),
+	  "start": "-P10M",
+	  "title": "Superfast Cornwall speeds 21CN FTTC over 10 months"}`),
 	}
-	err := threemonths.Validate()
+	err := plot.Validate()
 	if err != nil {
 		return "", errors.Wrap(err, "failed validating metric request")
 	}
 
-	req := sender.cloudwatchSvc.GetMetricWidgetImageRequest(&threemonths)
+	req := sender.cloudwatchSvc.GetMetricWidgetImageRequest(&plot)
 
 	image, err := req.Send(context.TODO())
 	if err != nil {
