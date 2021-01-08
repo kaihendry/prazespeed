@@ -29,7 +29,6 @@ type Sender struct {
 type infoPayload struct {
 	ControlLogin    string `json:"control_login"`
 	ControlPassword string `json:"control_password"`
-	Service         string `json:"service"`
 }
 
 type Info struct {
@@ -82,7 +81,7 @@ func main() {
 }
 
 func aainfo() (info Info, err error) {
-	u := infoPayload{ControlLogin: os.Getenv("LOGIN"), ControlPassword: os.Getenv("PASSWORD"), Service: os.Getenv("NUMBER")}
+	u := infoPayload{ControlLogin: os.Getenv("LOGIN"), ControlPassword: os.Getenv("PASSWORD")}
 	b := new(bytes.Buffer)
 	json.NewEncoder(b).Encode(u)
 	resp, err := http.Post("https://chaos2.aa.net.uk/broadband/info", "application/json; charset=utf-8", b)
@@ -107,7 +106,6 @@ func aainfo() (info Info, err error) {
 		return info, errors.Wrap(err, "failed to get response")
 	}
 	return infor.Infos[0], err
-
 }
 
 func get(w http.ResponseWriter, r *http.Request) {
@@ -119,6 +117,8 @@ func get(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// log.Infof("%+v", info)
 
 	cw, err := NewSender()
 	if err != nil {
